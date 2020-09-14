@@ -40,35 +40,75 @@ public class ASTInterpreter {
     private static final Visitor<JSObject, Object> VISITOR =
             new Visitor<JSObject, Object>()
                     .when(Block.class, (block, env) -> {
-                        throw new UnsupportedOperationException("TODO Block");
+                        for(var instruction : block.instrs()) {
+                            visit(instruction, env);
+                        }
+                        return UNDEFINED;
                     })
-                    .when(Literal.class, (literal, env) -> {
-                        throw new UnsupportedOperationException("TODO Literal");
-                    })
-                    
+                    .when(Literal.class, (literal, env) -> literal.value())
                     .when(FunCall.class, (funCall, env) -> {
-                        throw new UnsupportedOperationException("TODO FunCall");
+                        var value = visit(funCall.qualifier(), env);
+                        var function = as(value, JSObject.class, funCall);
+                        var arguments = funCall.args().stream().map(instr -> visit(instr, env)).toArray();
+                        return function.invoke(UNDEFINED, arguments);
                     })
-                    .when(LocalVarAccess.class, (localVarAccess, env) -> {
-                        throw new UnsupportedOperationException("TODO LocalVarAccess");
-                    })
+                    .when(LocalVarAccess.class, (localVarAccess, env) -> env.lookup(localVarAccess.name()))
                     .when(LocalVarAssignment.class, (localVarAssignment, env) -> {
-                        throw new UnsupportedOperationException("TODO LocalVarAssignment");
-                    }) 
+                        var lookup = env.lookup(localVarAssignment.name());
+                        if(localVarAssignment.declaration() && lookup != UNDEFINED) { // var localVar = x
+                            throw new Failure("variable " + localVarAssignment.name() + " already defined");
+                        }
+                        if(!localVarAssignment.declaration() && lookup == UNDEFINED) { // localVar = x
+                            throw new Failure("variable " + localVarAssignment.name() + " not defined");
+                        }
+                        env.register(localVarAssignment.name(), visit(localVarAssignment.expr(), env));
+                        return UNDEFINED;
+                    })
                     .when(Fun.class, (fun, env) -> {
-                        throw new UnsupportedOperationException("TODO Fun");
+                        var functionName = fun.name().orElse("lambda");
+                        var invoker = new JSObject.Invoker() {
+                            @Override
+                            public Object invoke(JSObject self, Object receiver, Object... args) {
+                                if(fun.parameters().size() != args.length) {
+                                    throw new Failure("wrong number of parameters at line " + fun.lineNumber() + ":" + functionName);
+                                }
+                                var newEnv = JSObject.newEnv(env);
+                                newEnv.register("this", receiver);
+                                for(int index = 0; index < args.length; index++) {
+                                    newEnv.register(fun.parameters().get(index), args[index]);
+                                }
+                                try {
+                                    return visit(fun.body(), newEnv);
+                                } catch (ReturnError error) {
+                                    return error.getValue();
+                                }
+                            }
+                        };
+                        var function = JSObject.newFunction(functionName, invoker);
+                        fun.name().ifPresent(name -> env.register(name, function));
+                        return function;
                     })
                     .when(Return.class, (_return, env) -> {
-                        throw new UnsupportedOperationException("TODO Return");
+                        var value = visit(_return.expr(), env);
+                        throw new ReturnError(value);
                     })
                     .when(If.class, (_if, env) -> {
-                        throw new UnsupportedOperationException("TODO If");
+                        var condition = visit(_if.condition(), env);
+                        if(condition.equals(0)) {
+                            return visit(_if.falseBlock(), env);
+                        }
+                        return visit(_if.trueBlock(), env);
                     })
                     .when(New.class, (_new, env) -> {
-                        throw new UnsupportedOperationException("TODO New");
+                        var prototype = JSObject.newObject(null);
+                        _new.initMap().forEach((property, init) -> {
+                            var value = visit(init, env);
+                            prototype.register(property, value);
+                        });
+                        return prototype;
                     })
                     .when(FieldAccess.class, (fieldAccess, env) -> {
-                        throw new UnsupportedOperationException("TODO FieldAccess");
+                        var prototype = visit(fieldAccess.receiver(), env);
                     })
                     .when(FieldAssignment.class, (fieldAssignment, env) -> {
                         throw new UnsupportedOperationException("TODO FieldAssignment");
@@ -104,3 +144,15 @@ public class ASTInterpreter {
     }
 }
 
+/**
+ *
+ * Exercise 1 - AST Interpreter
+ *  1. The visitor allows us to "visit" all instructions
+ *  First we visit the root of the tree and then we will visit all instruction
+ *  If an instruction has different components (it is a node) we will visit each one
+ *  Parameter ENV : all variables that are known within and outside the scope of the block
+ *  (there is no "let" variables)
+ *
+ * 2. the localVarAccess had to be implemented
+ *
+ */
