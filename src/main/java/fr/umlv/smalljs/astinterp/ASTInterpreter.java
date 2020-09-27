@@ -109,12 +109,21 @@ public class ASTInterpreter {
                     })
                     .when(FieldAccess.class, (fieldAccess, env) -> {
                         var prototype = visit(fieldAccess.receiver(), env);
+                        return as(prototype, JSObject.class, fieldAccess).lookup(fieldAccess.name());
                     })
                     .when(FieldAssignment.class, (fieldAssignment, env) -> {
-                        throw new UnsupportedOperationException("TODO FieldAssignment");
+                        var prototype = visit(fieldAssignment.receiver(), env);
+                        var value = visit(fieldAssignment.expr(), env);
+                        as(prototype, JSObject.class, fieldAssignment)
+                                .register(fieldAssignment.name(), value);
+                        return UNDEFINED;
                     })
                     .when(MethodCall.class, (methodCall, env) -> {
-                        throw new UnsupportedOperationException("TODO MethodCall");
+                        var prototype = visit(methodCall.receiver(), env);
+                        var converted = as(prototype, JSObject.class, methodCall);
+                        var method = as(converted.lookup(methodCall.name()), JSObject.class, methodCall);
+                        var arguments = methodCall.args().stream().map(arg -> visit(arg, env)).toArray();
+                        return method.invoke(converted, arguments);
                     })
             ;
 
@@ -148,11 +157,17 @@ public class ASTInterpreter {
  *
  * Exercise 1 - AST Interpreter
  *  1. The visitor allows us to "visit" all instructions
- *  First we visit the root of the tree and then we will visit all instruction
+ *  First we visit the root of the tree and then we will visit all instructions
  *  If an instruction has different components (it is a node) we will visit each one
  *  Parameter ENV : all variables that are known within and outside the scope of the block
  *  (there is no "let" variables)
  *
- * 2. the localVarAccess had to be implemented
+ * 2. the localVarAccess had to be implemented in order for Q2 to pass
+ *
+ * 4. We need to implement the literal class.
+ *
+ * 5. The return value of print in Javascript is UNDEFINED.
+ *
+ * 6. Built-in functions are defined in the global environment env.
  *
  */

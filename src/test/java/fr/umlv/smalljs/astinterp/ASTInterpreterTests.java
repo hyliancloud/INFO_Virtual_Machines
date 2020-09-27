@@ -343,7 +343,7 @@ public class ASTInterpreterTests {
                 print(john.foo);
                 """));
   }
-  /*
+
   @Tag("Q16") @Test
   public void objectSetAFieldValue() {
     assertEquals(
@@ -381,5 +381,5 @@ public class ASTInterpreterTests {
                 object.foo(42);
                 object.foo(42);
                 """));
-  }*/
+  }
 }
