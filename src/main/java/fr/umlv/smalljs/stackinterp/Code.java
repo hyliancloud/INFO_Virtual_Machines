@@ -10,3 +10,8 @@ public record Code(int[] instrs, int parameterCount, int slotCount) {
 		requireNonNull(instrs);
 	}
 }
+
+/**
+ * slotCount = variables locales de la fonction, dont les arguments
+ * parameterCount = arguments de la fonction
+ */
