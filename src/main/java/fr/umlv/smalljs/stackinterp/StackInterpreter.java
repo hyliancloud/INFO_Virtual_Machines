@@ -106,7 +106,6 @@ public class StackInterpreter {
 					push(stack, sp++, encodeAnyValue(globalEnv.lookup(name), dict));
 				}
 				case Instructions.REGISTER -> {
-					//throw new UnsupportedOperationException("TODO REGISTER");
 					// decode the name from the instructions
 					String name = (String) decodeDictObject(instrs[pc++], dict);
 					// pop the value from the stack and decode it
@@ -115,7 +114,6 @@ public class StackInterpreter {
 					 globalEnv.register(name, value);
 				}
 				case Instructions.LOAD -> {
-					//throw new UnsupportedOperationException("TODO LOAD");
 					var offset = instrs[pc++];
 					// load value from the local slots
 					int value = load(stack, bp, offset);
@@ -123,7 +121,6 @@ public class StackInterpreter {
 					push(stack, sp++, value);
 				}
 				case Instructions.STORE -> {
-					//throw new UnsupportedOperationException("TODO STORE");
 					// slot number
 					var offset = instrs[pc++];
 					// pop value from the stack
@@ -132,7 +129,6 @@ public class StackInterpreter {
 					store(stack, bp, offset, value);
 				}
 				case Instructions.DUP -> {
-					//throw new UnsupportedOperationException("TODO DUP");
 					// get value on top of the stack
 					var value = peek(stack, sp);
 					// push it on top of the stack
@@ -143,7 +139,6 @@ public class StackInterpreter {
 					--sp;
 				}
 				case Instructions.SWAP -> {
-					//throw new UnsupportedOperationException("TODO SWAP");
 					// pop first value from the stack
 					var value1 = pop(stack, --sp);
 					// pop second value from the stack
@@ -207,7 +202,6 @@ public class StackInterpreter {
 
 					// initialize new code
 					code = (Code) maybeCode;
-
 					// check number of arguments
 					if (code.parameterCount() != argumentCount + 1/* this */) {
 						throw new Failure("wrong number of arguments for " + newFunction.getName() + " expected "
@@ -271,12 +265,10 @@ public class StackInterpreter {
 					//dumpStack("> end ret dump", stack, sp, bp, dict, heap);
 				}
 				case Instructions.GOTO -> {
-					//throw new UnsupportedOperationException("TODO GOTO");
 					// change the program counter to the label
-					pc = instrs[pc + 1];
+					pc = instrs[pc++];
 				}
 				case Instructions.JUMP_IF_FALSE -> {
-					//throw new UnsupportedOperationException("TODO JUMP_IF_FALSE");
 					// get the label
 					var label = instrs[pc++];
 					// get the value on top of the stack
@@ -287,37 +279,37 @@ public class StackInterpreter {
 					}
 				}
 				case Instructions.NEW -> {
-					throw new UnsupportedOperationException("TODO NEW");
+					//throw new UnsupportedOperationException("TODO NEW");
 					// get the class from the instructions
-					//var vClass = instrs[pc++];
-					//var clazz = (JSObject) ...;
+					var vClass = instrs[pc++];
+					var clazz = (JSObject) decodeDictObject(pc++, dict);
 
 					// out of memory ?
-					//if (hp + OBJECT_HEADER_SIZE + clazz.length() >= heap.length) {
-						//dumpHeap("before GC ", heap, hp, dict);
+					if (hp + OBJECT_HEADER_SIZE + clazz.length() >= heap.length) {
+						dumpHeap("before GC ", heap, hp, dict);
 
-						//throw new UnsupportedOperationException("TODO !!! GC !!!")
+						throw new UnsupportedOperationException("TODO !!! GC !!!");
 
 						//dumpHeap("after GC ", heap, hp, dict);
-					//}
+					}
 
-					//var ref = hp;
+					var ref = hp;
 
 					// write the class on heap
-					//heap[ref] = ...
+					heap[ref] =
 					// write the empty GC mark
-					//heap[ref + GC_OFFSET] = GC_EMPTY;
+					heap[ref + GC_OFFSET] = GC_EMPTY;
 					// get all fields values from the stack and write them on heap
-					//var baseArg = ...;
-					//for (var i = 0; i < clazz.length(); i++) {
-					//	heap[ref + OBJECT_HEADER_SIZE + i] = stack[baseArg + i];
-					//}
+					var baseArg = ...;
+					for (var i = 0; i < clazz.length(); i++) {
+						heap[ref + OBJECT_HEADER_SIZE + i] = stack[baseArg + i];
+					}
 					// adjust stack pointer and heap pointer
-					//sp = ...
-					//hp += ...
+					sp = ...
+					hp += ...
 
 					// push the reference on top of the stack
-					//push(...);
+					push(...);
 				}
 				case Instructions.GET -> {
 					//throw new UnsupportedOperationException("TODO GET");
@@ -363,7 +355,6 @@ public class StackInterpreter {
 					//heap[...] = ...;
 				}
 				case Instructions.PRINT -> {
-					//throw new UnsupportedOperationException("TODO PRINT");
 					// pop the value on top of the stack
 					var result = pop(stack, --sp);
 					// decode the value
