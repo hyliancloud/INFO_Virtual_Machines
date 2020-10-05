@@ -273,7 +273,7 @@ public class StackInterpreter {
 				case Instructions.GOTO -> {
 					//throw new UnsupportedOperationException("TODO GOTO");
 					// change the program counter to the label
-					pc = instrs[pc + 1];
+					pc = instrs[pc++];
 				}
 				case Instructions.JUMP_IF_FALSE -> {
 					//throw new UnsupportedOperationException("TODO JUMP_IF_FALSE");
@@ -287,24 +287,24 @@ public class StackInterpreter {
 					}
 				}
 				case Instructions.NEW -> {
-					throw new UnsupportedOperationException("TODO NEW");
+					//throw new UnsupportedOperationException("TODO NEW");
 					// get the class from the instructions
-					//var vClass = instrs[pc++];
-					//var clazz = (JSObject) ...;
+                    var vClass = instrs[pc++];
+                    var clazz = (JSObject) decodeDictObject(pc++, dict);
 
 					// out of memory ?
-					//if (hp + OBJECT_HEADER_SIZE + clazz.length() >= heap.length) {
-						//dumpHeap("before GC ", heap, hp, dict);
+					if (hp + OBJECT_HEADER_SIZE + clazz.length() >= heap.length) {
+						dumpHeap("before GC ", heap, hp, dict);
 
-						//throw new UnsupportedOperationException("TODO !!! GC !!!")
+						throw new UnsupportedOperationException("TODO !!! GC !!!");
 
 						//dumpHeap("after GC ", heap, hp, dict);
-					//}
+					}
 
-					//var ref = hp;
+					var ref = hp;
 
 					// write the class on heap
-					//heap[ref] = ...
+                    heap[ref + GC_OFFSET] = GC_EMPTY;
 					// write the empty GC mark
 					//heap[ref + GC_OFFSET] = GC_EMPTY;
 					// get all fields values from the stack and write them on heap
