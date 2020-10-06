@@ -46,88 +46,88 @@ public class StackInterpreterGCTests {
     return outStream.toString(StandardCharsets.UTF_8).replace("\r\n", "\n");
   }
 
-//  @Tag("Q2") @Test
-//  public void gcTest() {
-//  	var dict = new Dictionary();
-//  	var pointClass = JSObject.newObject(null);
-//  	pointClass.register("x", 0);
-//  	pointClass.register("y", 1);
-//  	int[] instrs = {
-//  		/* 0:*/ CONST, encodeSmallInt(100),
-//  	  /* 2:*/ STORE, 1,
-//
-//  	  /* 4:*/ LOAD, 1,
-//  	  /* 6:*/ JUMP_IF_FALSE, 29,
-//
-//  	  /* 8:*/ CONST, encodeSmallInt(1),
-//  	  /*10:*/ CONST, encodeSmallInt(2),
-//  	  /*12:*/ NEW, encodeDictObject(pointClass, dict),
-//  	  /*14:*/ POP,
-//
-//  	  /*15:*/ LOOKUP, encodeDictObject("-", dict),
-//  	  /*17:*/ CONST, encodeDictObject(UNDEFINED, dict),
-//  	  /*19:*/ LOAD, 1,
-//  	  /*21:*/ CONST, encodeSmallInt(1),
-//  	  /*23:*/ FUNCALL, 2,
-//  	  /*25:*/ STORE, 1,
-//
-//  	  /*27:*/ GOTO, 4,
-//
-//  	  /*29:*/ CONST, encodeDictObject(UNDEFINED, dict),
-//  	  /*31:*/ RET
-//  	};
-//    execute(new Code(instrs, 1, 2), dict);
-//  }
-//
-//  @Tag("Q3") @Test
-//  public void gcTestRewriteField() {
-//  	var dict = new Dictionary();
-//  	var clazz = JSObject.newObject(null);
-//  	clazz.register("field", 0);
-//  	int[] instrs = {
-//  		/* 0:*/ CONST, encodeSmallInt(21),
-//    	/* 2:*/ NEW, encodeDictObject(clazz, dict),
-//    	/* 4:*/ POP,  // should be GCed
-//
-//    	/* 5:*/ CONST, encodeSmallInt(42),
-//    	/* 7:*/ NEW, encodeDictObject(clazz, dict),
-//    	/* 9:*/ STORE, 2, // should not be GCed
-//
-//    	/*11:*/ LOAD, 2,
-//    	/*13:*/ CONST, encodeSmallInt(84),
-//    	/*15:*/ NEW, encodeDictObject(clazz, dict),
-//    	/*17:*/ PUT, encodeDictObject("field", dict), // modification after creation
-//
-//  		/*19:*/ CONST, encodeSmallInt(100),
-//  	  /*21:*/ STORE, 1,
-//
-//  	  /*23:*/ LOAD, 1,
-//  	  /*25:*/ JUMP_IF_FALSE, 46,
-//
-//  	  /*27:*/ LOAD, 2,
-//  	  /*29:*/ NEW, encodeDictObject(clazz, dict),
-//  	  /*31:*/ POP,  // should be GCed
-//
-//  	  /*32:*/ LOOKUP, encodeDictObject("-", dict),
-//  	  /*34:*/ CONST, encodeDictObject(UNDEFINED, dict),
-//  	  /*36:*/ LOAD, 1,
-//  	  /*38:*/ CONST, encodeSmallInt(1),
-//  	  /*40:*/ FUNCALL, 2,
-//  	  /*42:*/ STORE, 1,
-//
-//  	  /*44:*/ GOTO, 23,
-//
-//  	  /*46:*/ LOAD, 2,
-//  	  /*48:*/ GET, encodeDictObject("field", dict),
-//  	  /*50:*/ GET, encodeDictObject("field", dict),
-//  	  /*52:*/ PRINT,
-//
-//  	  /*53:*/ CONST, encodeDictObject(UNDEFINED, dict),
-//  	  /*31:*/ RET
-//  	};
-//    assertEquals("84\n", execute(new Code(instrs, 1, 3), dict));
-//  }
-//
+  @Tag("Q2") @Test
+  public void gcTest() {
+  	var dict = new Dictionary();
+  	var pointClass = JSObject.newObject(null);
+  	pointClass.register("x", 0);
+  	pointClass.register("y", 1);
+  	int[] instrs = {
+  		/* 0:*/ CONST, encodeSmallInt(100),
+  	  /* 2:*/ STORE, 1,
+
+  	  /* 4:*/ LOAD, 1,
+  	  /* 6:*/ JUMP_IF_FALSE, 29,
+
+  	  /* 8:*/ CONST, encodeSmallInt(1),
+  	  /*10:*/ CONST, encodeSmallInt(2),
+  	  /*12:*/ NEW, encodeDictObject(pointClass, dict),
+  	  /*14:*/ POP,
+
+  	  /*15:*/ LOOKUP, encodeDictObject("-", dict),
+  	  /*17:*/ CONST, encodeDictObject(UNDEFINED, dict),
+  	  /*19:*/ LOAD, 1,
+  	  /*21:*/ CONST, encodeSmallInt(1),
+  	  /*23:*/ FUNCALL, 2,
+  	  /*25:*/ STORE, 1,
+
+  	  /*27:*/ GOTO, 4,
+
+  	  /*29:*/ CONST, encodeDictObject(UNDEFINED, dict),
+  	  /*31:*/ RET
+  	};
+    execute(new Code(instrs, 1, 2), dict);
+  }
+
+  @Tag("Q3") @Test
+  public void gcTestRewriteField() {
+  	var dict = new Dictionary();
+  	var clazz = JSObject.newObject(null);
+  	clazz.register("field", 0);
+  	int[] instrs = {
+  		/* 0:*/ CONST, encodeSmallInt(21),
+    	/* 2:*/ NEW, encodeDictObject(clazz, dict),
+    	/* 4:*/ POP,  // should be GCed
+
+    	/* 5:*/ CONST, encodeSmallInt(42),
+    	/* 7:*/ NEW, encodeDictObject(clazz, dict),
+    	/* 9:*/ STORE, 2, // should not be GCed
+
+    	/*11:*/ LOAD, 2,
+    	/*13:*/ CONST, encodeSmallInt(84),
+    	/*15:*/ NEW, encodeDictObject(clazz, dict),
+    	/*17:*/ PUT, encodeDictObject("field", dict), // modification after creation
+
+  		/*19:*/ CONST, encodeSmallInt(100),
+  	  /*21:*/ STORE, 1,
+
+  	  /*23:*/ LOAD, 1,
+  	  /*25:*/ JUMP_IF_FALSE, 46,
+
+  	  /*27:*/ LOAD, 2,
+  	  /*29:*/ NEW, encodeDictObject(clazz, dict),
+  	  /*31:*/ POP,  // should be GCed
+
+  	  /*32:*/ LOOKUP, encodeDictObject("-", dict),
+  	  /*34:*/ CONST, encodeDictObject(UNDEFINED, dict),
+  	  /*36:*/ LOAD, 1,
+  	  /*38:*/ CONST, encodeSmallInt(1),
+  	  /*40:*/ FUNCALL, 2,
+  	  /*42:*/ STORE, 1,
+
+  	  /*44:*/ GOTO, 23,
+
+  	  /*46:*/ LOAD, 2,
+  	  /*48:*/ GET, encodeDictObject("field", dict),
+  	  /*50:*/ GET, encodeDictObject("field", dict),
+  	  /*52:*/ PRINT,
+
+  	  /*53:*/ CONST, encodeDictObject(UNDEFINED, dict),
+  	  /*31:*/ RET
+  	};
+    assertEquals("84\n", execute(new Code(instrs, 1, 3), dict));
+  }
+
 //  @Tag("Q4") @Test
 //  public void gcTestWithFields() {
 //  	var dict = new Dictionary();
