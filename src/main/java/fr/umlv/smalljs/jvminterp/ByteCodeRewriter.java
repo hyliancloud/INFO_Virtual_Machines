@@ -1,21 +1,7 @@
 package fr.umlv.smalljs.jvminterp;
 
 import static java.lang.invoke.MethodType.genericMethodType;
-import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
-import static org.objectweb.asm.Opcodes.ACC_STATIC;
-import static org.objectweb.asm.Opcodes.ACC_SUPER;
-import static org.objectweb.asm.Opcodes.ACONST_NULL;
-import static org.objectweb.asm.Opcodes.ALOAD;
-import static org.objectweb.asm.Opcodes.ARETURN;
-import static org.objectweb.asm.Opcodes.ASTORE;
-import static org.objectweb.asm.Opcodes.DUP;
-import static org.objectweb.asm.Opcodes.GOTO;
-import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
-import static org.objectweb.asm.Opcodes.IFEQ;
-import static org.objectweb.asm.Opcodes.INVOKESTATIC;
-import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
-import static org.objectweb.asm.Opcodes.POP;
-import static org.objectweb.asm.Opcodes.V11;
+import static org.objectweb.asm.Opcodes.*;
 
 import java.io.PrintWriter;
 import java.lang.invoke.CallSite;
@@ -25,12 +11,14 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.util.List;
 
+import fr.umlv.smalljs.rt.Failure;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import fr.umlv.smalljs.ast.Expr;
@@ -78,9 +66,9 @@ public class ByteCodeRewriter {
         mv.visitCode();
 
         //initialize local variables to undefined by default
-        for(var i = parameterCount; i < localVariableCount; i++) {
-          mv.visitLdcInsn(new ConstantDynamic("undefined", "Ljava/lang/Object;", BSM_UNDEFINED));
-          mv.visitVarInsn(ASTORE, i);
+        for (var i = parameterCount; i < localVariableCount; i++) {
+            mv.visitLdcInsn(new ConstantDynamic("undefined", "Ljava/lang/Object;", BSM_UNDEFINED));
+            mv.visitVarInsn(ASTORE, i);
         }
 
         var dictionary = new FunDictionary();
@@ -100,7 +88,8 @@ public class ByteCodeRewriter {
 
         MethodHandle mh;
         try {
-            mh = MethodHandles.lookup().findStatic(type, name, methodType);
+            mh = MethodHandles.lookup()
+                    .findStatic(type, name, methodType);
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new AssertionError(e);
         }
@@ -165,11 +154,14 @@ public class ByteCodeRewriter {
     private static Handle bsm(String name, Class<?> returnType, Class<?>... parameterTypes) {
         return new Handle(H_INVOKESTATIC,
                 RT_NAME, name,
-                MethodType.methodType(returnType, parameterTypes).toMethodDescriptorString(), false);
+                MethodType.methodType(returnType, parameterTypes)
+                        .toMethodDescriptorString(), false);
     }
 
-    private static final String JSOBJECT = JSObject.class.getName().replace('.', '/');
-    private static final String RT_NAME = RT.class.getName().replace('.', '/');
+    private static final String JSOBJECT = JSObject.class.getName()
+            .replace('.', '/');
+    private static final String RT_NAME = RT.class.getName()
+            .replace('.', '/');
     private static final Handle BSM_UNDEFINED = bsm("bsm_undefined", Object.class, Lookup.class, String.class, Class.class);
     private static final Handle BSM_CONST = bsm("bsm_const", Object.class, Lookup.class, String.class, Class.class, int.class);
     private static final Handle BSM_FUNCALL = bsm("bsm_funcall", CallSite.class, Lookup.class, String.class, MethodType.class);
@@ -182,69 +174,113 @@ public class ByteCodeRewriter {
     private static final Handle BSM_METHODCALL = bsm("bsm_methodcall", CallSite.class, Lookup.class, String.class, MethodType.class);
 
     private static VoidVisitor<JSObject> createVisitor(MethodVisitor mv, FunDictionary dictionary) {
-    	  var visitor= new VoidVisitor<JSObject>();
+        var visitor = new VoidVisitor<JSObject>();
         visitor
                 .when(Block.class, (block, env) -> {
-                  throw new UnsupportedOperationException("TODO Block");
-                  // for each expression, visit them and POP it's not an instruction
+                    //throw new UnsupportedOperationException("TODO Block");
+                    // for each expression, visit them and POP it's not an instruction
+                    for (var expr : block.instrs()) {
+                        visitor.visit(expr, env);
+                        if (!(expr instanceof Instr)) {
+                            mv.visitInsn(POP);
+                        }
+                    }
                 })
                 .when(Literal.class, (literal, env) -> {
-                  throw new UnsupportedOperationException("TODO Literal");
-                  // get the literal value, and use visitLDCInsn
-                  // if it's an Integer, wrap it into a ConstantDynamic because the JVM doesn't have a primitive for boxed integer
+                    //throw new UnsupportedOperationException("TODO Literal");
+                    // get the literal value, and use visitLDCInsn
+                    // if it's an Integer, wrap it into a ConstantDynamic because the JVM doesn't have a primitive for boxed integer
+                    var value = literal.value();
+                    if (value instanceof Integer intValue) {
+                        var wrappedValue = new ConstantDynamic("const_int", "Ljava/lang/Integer;", BSM_CONST, intValue);
+                        mv.visitLdcInsn(wrappedValue);
+                    } else {
+                        mv.visitLdcInsn((String) value);
+                    }
                 })
                 .when(FunCall.class, (funCall, env) -> {
-                  throw new UnsupportedOperationException("TODO FunCall");
-                  // visit the qualifier
-                  // load "this"
-                  // for each arguments, visit it
-                  // the name of the invokedynamic is either "builtincall" or "funcall"
-                  //var name = (funCall.qualifier() instanceof LocalVarAccess &&
-                  //    env.lookup(((LocalVarAccess)funCall.qualifier()).name()) == JSObject.UNDEFINED)? "builtincall": "funcall";
-                  // generate an invokedynamic with the right name
+                    //   throw new UnsupportedOperationException("TODO FunCall");
+                    // visit the qualifier
+                    visitor.visit(funCall.qualifier(), env);
+
+                    // load "this"
+                    mv.visitLdcInsn(new ConstantDynamic("undefined", "Ljava/lang/Object;", BSM_UNDEFINED));
+                    // for each arguments, visit it
+                    for (var arg : funCall.args()) {
+                        visitor.visit(arg, env);
+                    }
+                    // the name of the invokedynamic is either "builtincall" or "funcall"
+                    var name = (funCall.qualifier() instanceof LocalVarAccess && env.lookup(((LocalVarAccess) funCall.qualifier()).name()) == JSObject.UNDEFINED)
+                            ? "builtincall"
+                            : "funcall";
+                    var descriptor = MethodType.genericMethodType(funCall.args()
+                            .size() + 2)
+                            .toMethodDescriptorString(); // + 2 => this and qualifier
+                    // generate an invokedynamic with the right name
+                    mv.visitInvokeDynamicInsn(name, descriptor, BSM_FUNCALL);
                 })
                 .when(LocalVarAssignment.class, (localVarAssignment, env) -> {
-                  throw new UnsupportedOperationException("TODO LocalVarAssignment");
-                  // visit expression
-                  // store at the local var slot using a lookup from the name
+                    // throw new UnsupportedOperationException("TODO LocalVarAssignment");
+                    // visit expression
+                    visitor.visit(localVarAssignment.expr(), env);
+                    // store at the local var slot using a lookup from the name
+                    var slotOrUndefined = env.lookup(localVarAssignment.name());
+                    if (slotOrUndefined == JSObject.UNDEFINED) {
+                        throw new Failure(localVarAssignment.name() + " is undefined");
+                    }
+                    mv.visitVarInsn(ASTORE, (int) slotOrUndefined);
                 })
                 .when(LocalVarAccess.class, (localVarAccess, env) -> {
-                  throw new UnsupportedOperationException("TODO LocalVarAccess");
-                  // get the name
-                  // lookup to find if its a local var access or a lookup access
-                  //if (objectOrSlot == JSObject.UNDEFINED)
-                  //  generate an invokedynamic doing a lookup
-                  // } else {
-                  //  load the local variable at the slot
-                  //}
+                    //throw new UnsupportedOperationException("TODO LocalVarAccess");
+                    // get the name
+                    var name = localVarAccess.name();
+                    // lookup to find if its a local var access or a lookup access
+                    var objectOrSlot = env.lookup(name);
+                    if (objectOrSlot == JSObject.UNDEFINED) {
+                        //  generate an invokedynamic doing a lookup
+                        mv.visitInvokeDynamicInsn("lookup", "()Ljava/lang/Object;", BSM_LOOKUP, name);
+                    } else {
+                        //load the local variable at the slot
+                        mv.visitVarInsn(ALOAD, (int) objectOrSlot);
+                    }
                 })
                 .when(Fun.class, (fun, env) -> {
-                  throw new UnsupportedOperationException("TODO Fun");
-                  // register the fun inside the fun directory and get the corresponding id
-                  //var funId = ...
-                  // emit a LDC to load the function corresponding to the if at runtime
-                  //fun.name().ifPresent(funName -> {
-                    //mv.visitInsn(DUP);
-                    // generate an invokedynamic doing a register with the function name
-                  //});
+//        throw new UnsupportedOperationException("TODO Fun");
+                    // register the fun inside the fun directory and get the corresponding id
+                    var funId = dictionary.register(fun);
+                    // emit a LDC to load the function corresponding to the id at runtime
+                    mv.visitLdcInsn(new ConstantDynamic("fun", "Ljava/lang/Object;", BSM_FUN, funId));
+                    fun.name()
+                            .ifPresent(funName -> {
+                                mv.visitInsn(DUP);
+                                // generate an invokedynamic doing a register with the function name
+                                //V -> void
+                                mv.visitInvokeDynamicInsn("register", "(Ljava/lang/Object;)V", BSM_REGISTER, funName);
+                            });
                 })
                 .when(Return.class, (_return, env) -> {
-                    throw new UnsupportedOperationException("TODO RETURN");
+                    //throw new UnsupportedOperationException("TODO RETURN");
                     // visit the return expression
+                    visitor.visit(_return.expr(), env);
                     // generate a RETURN
+                    mv.visitInsn(ARETURN);
                 })
                 .when(If.class, (_if, env) -> {
-                    throw new UnsupportedOperationException("TODO If");
-                    //var falseLabel = new Label();
-                    //var endLabel = new Label();
+                    //throw new UnsupportedOperationException("TODO If");
+                    var falseLabel = new Label();
+                    var endLabel = new Label();
                     // visit the condition
+                    visitor.visit(_if.condition(), env);
                     // generate an invokedynamic to transform an Object to a boolean using BSM_TRUTH
-                    // mv.visitJumpInsn(IFEQ, falseLabel);
+                    mv.visitInvokeDynamicInsn("truth", "(Ljava/lang/Object;)Z", BSM_TRUTH);
                     // visit the true block
-                    //mv.visitJumpInsn(GOTO, endLabel);
-                    //mv.visitLabel(falseLabel);
+                    mv.visitJumpInsn(IFEQ, falseLabel);
+                    visitor.visit(_if.trueBlock(), env);
+                    mv.visitJumpInsn(GOTO, endLabel);
+                    mv.visitLabel(falseLabel);
                     // visit the false block
-                    // mv.visitLabel(endLabel);
+                    visitor.visit(_if.falseBlock(), env);
+                    mv.visitLabel(endLabel);
                 })
                 .when(New.class, (_new, env) -> {
                     throw new UnsupportedOperationException("TODO New");
@@ -253,11 +289,11 @@ public class ByteCodeRewriter {
                     //mv.visitMethodInsn(INVOKESTATIC, JSOBJECT, "newObject", "(L" + JSOBJECT + ";)L" + JSOBJECT + ';', false);
                     // for each initialization expression
                     //_new.initMap().forEach((key, init) -> {
-                      //mv.visitInsn(DUP);
-                      // generate a string with the key
-                      // visit the initialization expression
-                      // call register on the JSObject
-                      //mv.visitMethodInsn(INVOKEVIRTUAL, JSOBJECT, "register", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
+                    //mv.visitInsn(DUP);
+                    // generate a string with the key
+                    // visit the initialization expression
+                    // call register on the JSObject
+                    //mv.visitMethodInsn(INVOKEVIRTUAL, JSOBJECT, "register", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
                     //});
                 })
                 .when(FieldAccess.class, (fieldAccess, env) -> {
@@ -278,7 +314,7 @@ public class ByteCodeRewriter {
                     //var args = methodCall.args();
                     // for each argument
                     //for (var expr : args) {
-                      // visit it
+                    // visit it
                     //}
                     // generate an invokedynamic that call BSM_METHODCALL
                 })
