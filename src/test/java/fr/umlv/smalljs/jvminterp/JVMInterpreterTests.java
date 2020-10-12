@@ -24,7 +24,7 @@ public class JVMInterpreterTests {
     return outStream.toString(StandardCharsets.UTF_8).replace("\r\n", "\n");
   }
 
-  /*
+
   @Tag("Q2") @Test
   public void helloString() {
     assertEquals("", execute("\"hello\"\n"));
@@ -34,19 +34,19 @@ public class JVMInterpreterTests {
   public void integer3() {
     assertEquals("", execute("3\n"));
   }
-  
+
   @Tag("Q4") @Test
   public void print() {
     assertEquals("hello\n", execute("print(\"hello\")\n"));
     assertEquals("foobar\n", execute("print('foobar')\n"));
     assertEquals("3\n", execute("print(3)\n"));
   }
-  
+
   @Tag("Q5") @Test
   public void printPrint() {
     assertFalse(execute("print(print)\n").isEmpty());
   }
-  
+
   @Tag("Q6") @Test
   public void printOperations() {
     assertEquals("5\n", execute("print(3 + 2)\n"));
@@ -381,5 +381,5 @@ public class JVMInterpreterTests {
                 object.foo(42);
                 object.foo(42);
                 """));
-  }*/
+  }
 }
